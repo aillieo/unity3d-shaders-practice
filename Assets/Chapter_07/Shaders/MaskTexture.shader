@@ -1,79 +1,95 @@
-﻿Shader "Custom/Chapter_08/Alpha Test" {
+﻿Shader "Custom/Chapter_07/MaskTexture" {
 	Properties {
 		_Color ("Color Tint", Color) = (1, 1, 1, 1)
 		_MainTex ("Main Tex", 2D) = "white" {}
-		_Cutoff ("Alpha Cutoff", Range(0, 1)) = 0.5
+		_BumpMap ("Normal Map", 2D) = "bump" {}
+		_BumpScale ("Bump Scale", Float) = 1.0				
+		_SpecularMask ("Specular Mask", 2D) = "bump" {}
+		_SpecularScale ("Specular Scale", Float) = 1.0
+		_Specular ("Specular", Color) = (1, 1, 1, 1)
+		_Gloss ("Gloss", Range(8.0, 256)) = 20
 	}
-	SubShader {
-		Tags {"Queue"="AlphaTest" 
-		"IgnoreProjector"="True" 
-		"RenderType"="TransparentCutout"}
-		
-		Pass {
+	SubShader {		
+		Pass { 
 			Tags { "LightMode"="ForwardBase" }
-			
+		
 			CGPROGRAM
 			
 			#pragma vertex vert
 			#pragma fragment frag
-			
+
 			#include "Lighting.cginc"
 			
 			fixed4 _Color;
 			sampler2D _MainTex;
-			float4 _MainTex_ST;
-			fixed _Cutoff;
+			float4 _MainTex_ST;   // three texture share the same xx_ST
+			sampler2D _BumpMap;
+			float _BumpScale;
+			sampler2D _SpecularMask;
+			float _SpecularScale;
+			fixed4 _Specular;
+			float _Gloss;
 			
 			struct a2v {
 				float4 vertex : POSITION;
 				float3 normal : NORMAL;
+				float4 tangent : TANGENT;
 				float4 texcoord : TEXCOORD0;
 			};
 			
 			struct v2f {
 				float4 pos : SV_POSITION;
-				float3 worldNormal : TEXCOORD0;
-				float3 worldPos : TEXCOORD1;
-				float2 uv : TEXCOORD2;
+				float2 uv : TEXCOORD0;
+				float3 lightDir : TEXCOORD1;
+				float3 viewDir : TEXCOORD2;
 			};
 			
 			v2f vert(a2v v) {
 				v2f o;
 				o.pos = UnityObjectToClipPos(v.vertex);
-				
-				o.worldNormal = UnityObjectToWorldNormal(v.normal);
-				
-				o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
-				
-				o.uv = TRANSFORM_TEX(v.texcoord, _MainTex);
-				
+
+				o.uv.xy = v.texcoord.xy * _MainTex_ST.xy + _MainTex_ST.zw;
+
+				//TANGENT_SPACE_ROTATION;
+				float3 binormal = cross( normalize(v.normal), normalize(v.tangent.xyz) ) * v.tangent.w;
+   		 		float3x3 rotation = float3x3( v.tangent.xyz, binormal, v.normal );
+
+
+
+				o.lightDir = mul(rotation, ObjSpaceLightDir(v.vertex).xyz);
+				o.viewDir = mul(rotation, ObjSpaceViewDir(v.vertex).xyz);
+								
 				return o;
 			}
 			
 			fixed4 frag(v2f i) : SV_Target {
-				fixed3 worldNormal = normalize(i.worldNormal);
-				fixed3 worldLightDir = normalize(UnityWorldSpaceLightDir(i.worldPos));
-				
-				fixed4 texColor = tex2D(_MainTex, i.uv);
-				
-				// Alpha test
-				clip (texColor.a - _Cutoff);
-				// Equal to 
-//				if ((texColor.a - _Cutoff) < 0.0) {
-//					discard;
-//				}
-				
-				fixed3 albedo = texColor.rgb * _Color.rgb;
-				
+
+				fixed3 tangentLightDir = normalize(i.lightDir);
+				fixed3 tangentViewDir = normalize(i.viewDir);
+
+				fixed4 packedNormal = tex2D(_BumpMap, i.uv.xy);
+				fixed3 tangentNormal = UnpackNormal(packedNormal);
+
+				tangentNormal.xy *= _BumpScale;
+				tangentNormal.z = sqrt(1.0 - saturate(dot(tangentNormal.xy, tangentNormal.xy)));
+
+				fixed3 albedo = tex2D(_MainTex, i.uv.xy).rgb * _Color.rgb;
+
 				fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz * albedo;
 				
-				fixed3 diffuse = _LightColor0.rgb * albedo * max(0, dot(worldNormal, worldLightDir));
+				fixed3 diffuse = _LightColor0.rgb * albedo * max(0, dot(tangentNormal, tangentLightDir));
 				
-				return fixed4(ambient + diffuse, 1.0);
+				fixed3 halfDir = normalize(tangentLightDir + tangentViewDir);
+
+				fixed specularMask = tex2D(_SpecularMask, i.uv.xy).r * _SpecularScale;
+
+				fixed3 specular = _LightColor0.rgb * _Specular.rgb * pow(max(0, dot(tangentNormal, halfDir)), _Gloss) * specularMask;
+				
+				return fixed4(ambient + diffuse + specular, 1.0);
 			}
 			
 			ENDCG
 		}
 	} 
-	FallBack "Transparent/Cutout/VertexLit"
+	FallBack "Specular"
 }

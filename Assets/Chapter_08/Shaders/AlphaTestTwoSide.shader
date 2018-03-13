@@ -1,4 +1,4 @@
-﻿Shader "Custom/Chapter_08/Alpha Test" {
+﻿Shader "Custom/Chapter_08/AlphaTestTwoSide" {
 	Properties {
 		_Color ("Color Tint", Color) = (1, 1, 1, 1)
 		_MainTex ("Main Tex", 2D) = "white" {}
@@ -11,7 +11,9 @@
 		
 		Pass {
 			Tags { "LightMode"="ForwardBase" }
-			
+
+			Cull Off
+
 			CGPROGRAM
 			
 			#pragma vertex vert

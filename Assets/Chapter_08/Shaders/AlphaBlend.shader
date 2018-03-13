@@ -1,17 +1,21 @@
-﻿Shader "Custom/Chapter_08/Alpha Test" {
+﻿Shader "Custom/Chapter_08/AlphaBlend" {
 	Properties {
 		_Color ("Color Tint", Color) = (1, 1, 1, 1)
 		_MainTex ("Main Tex", 2D) = "white" {}
-		_Cutoff ("Alpha Cutoff", Range(0, 1)) = 0.5
+		_AlphaScale ("Alpha Scale", Range(0, 1)) = 0.5
 	}
 	SubShader {
-		Tags {"Queue"="AlphaTest" 
+		Tags {"Queue"="Transparent" 
 		"IgnoreProjector"="True" 
-		"RenderType"="TransparentCutout"}
+		"RenderType"="Transparent"}
 		
 		Pass {
 			Tags { "LightMode"="ForwardBase" }
-			
+
+			ZWrite Off
+
+			Blend SrcAlpha OneMinusSrcAlpha
+
 			CGPROGRAM
 			
 			#pragma vertex vert
@@ -22,7 +26,7 @@
 			fixed4 _Color;
 			sampler2D _MainTex;
 			float4 _MainTex_ST;
-			fixed _Cutoff;
+			fixed _AlphaScale;
 			
 			struct a2v {
 				float4 vertex : POSITION;
@@ -55,21 +59,14 @@
 				fixed3 worldLightDir = normalize(UnityWorldSpaceLightDir(i.worldPos));
 				
 				fixed4 texColor = tex2D(_MainTex, i.uv);
-				
-				// Alpha test
-				clip (texColor.a - _Cutoff);
-				// Equal to 
-//				if ((texColor.a - _Cutoff) < 0.0) {
-//					discard;
-//				}
-				
+
 				fixed3 albedo = texColor.rgb * _Color.rgb;
 				
 				fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz * albedo;
 				
 				fixed3 diffuse = _LightColor0.rgb * albedo * max(0, dot(worldNormal, worldLightDir));
 				
-				return fixed4(ambient + diffuse, 1.0);
+				return fixed4(ambient + diffuse, texColor.a * _AlphaScale);
 			}
 			
 			ENDCG
