@@ -31,11 +31,23 @@ public abstract class OnRenderImageBase : MonoBehaviour
 
     virtual protected Material CreateMat()
     {
-        if(null != shader && shader.isSupported)
+        return CreateMatWithShader(shader);
+    }
+
+    protected Material CreateMatWithShader(Shader s)
+    {
+        if (null != s)
         {
-            Material mat = new Material(shader);
-            mat.hideFlags = HideFlags.DontSave;
-            return mat;
+            if (s.isSupported)
+            {
+                Material mat = new Material(s);
+                mat.hideFlags = HideFlags.DontSave;
+                return mat;
+            }
+            else
+            {
+                Debug.LogError("Shader " + s.name + "is NOT supported");
+            }
         }
         return null;
     }
