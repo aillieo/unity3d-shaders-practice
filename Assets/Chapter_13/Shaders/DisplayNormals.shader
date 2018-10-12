@@ -10,7 +10,7 @@ Shader "Custom/Chapter_13/DisplayNormals" {
 		#include "UnityCG.cginc"
 		
 		sampler2D _MainTex;
-		sampler2D _CameraDepthNormalTexture;
+		sampler2D _CameraDepthNormalsTexture;
 		
 		struct v2f {
 			float4 pos : SV_POSITION;
@@ -28,7 +28,7 @@ Shader "Custom/Chapter_13/DisplayNormals" {
 		
 		fixed4 frag(v2f i) : SV_Target {
 			
-			fixed3 normal = DecodeViewNormalStereo(tex2D(_CameraDepthNormalTexture, i.uv));
+			fixed3 normal = DecodeViewNormalStereo(tex2D(_CameraDepthNormalsTexture, i.uv));
 			return fixed4(normal * 0.5 + 0.5 ,1.0);
 		}
 
