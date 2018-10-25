@@ -21,7 +21,7 @@ Shader "Custom/Chapter_14/Hatching" {
 	SubShader {
 		Tags { "RenderType"="Opaque" "Queue"="Geometry"}
 		
-		UsePass "Unity Shaders Book/Chapter 14/Toon Shading/OUTLINE"
+		UsePass "Custom/Chapter_14/ToonShading/OUTLINE"
 		
 		Pass {
 			Tags { "LightMode"="ForwardBase" }
@@ -79,6 +79,12 @@ Shader "Custom/Chapter_14/Hatching" {
 				
 				float hatchFactor = diff * 7.0;
 				
+
+				//   texture      tex0    tex1    tex2    tex3    tex4    tex5    white
+				//                |_______|_______|_______|_______|_______|_______|_______|
+				//  hatchFactor   0       1       2       3       4       5       6
+				//  hatchWeights  0.x     0.y     0.z     1.x     0.z     0.z     0.z     1-else
+
 				if (hatchFactor > 6.0) {
 					// Pure white, do nothing
 				} else if (hatchFactor > 5.0) {
