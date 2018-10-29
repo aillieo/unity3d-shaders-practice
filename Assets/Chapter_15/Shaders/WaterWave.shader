@@ -89,7 +89,7 @@ Shader "Custom/Chapter_15/WaterWave" {
 				// Get the normal in tangent space
 				fixed3 bump1 = UnpackNormal(tex2D(_WaveMap, i.uv.zw + speed)).rgb;
 				fixed3 bump2 = UnpackNormal(tex2D(_WaveMap, i.uv.zw - speed)).rgb;
-				fixed3 bump = normalize(bump1 + bump2);
+				fixed3 bump = normalize(bump1 + bump2);			// 两次采样 为了模拟两层交叉的水面波动效果 以后再慢慢理解吧
 				
 				// Compute the offset in tangent space
 				float2 offset = bump.xy * _Distortion * _RefractionTex_TexelSize.xy;
